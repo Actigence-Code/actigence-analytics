@@ -1,0 +1,13 @@
+{
+  "interfaces": [
+    {
+      "name": "actigence-analytics source prototype",
+      "kind": "historical-prototype",
+      "root": "assets",
+      "deploymentDisabled": true,
+      "reason": "This repository frontend is absent from the audited active nginx/service roots. Native PPM and Metabase are separate deployments. New frontend changes/releases require Core migration first."
+    }
+  ],
+  "schema": "actigence.core.consumer.v1",
+  "coreRelease": "core-v0.2.0-rc.2"
+}
