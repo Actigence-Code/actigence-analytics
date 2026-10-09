@@ -1,0 +1,9 @@
+name: Mandatory Actigence Core
+on:
+  pull_request:
+  push:
+permissions:
+  contents: read
+jobs:
+  core:
+    uses: Actigence-Code/actigence-core/.github/workflows/consumer-core-contract.yml@a5a0c1929f81d7eaae6f4f3939075f2e916e6919
