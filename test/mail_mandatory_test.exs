@@ -146,12 +146,13 @@ defmodule ActigenceMailConfigTest do
         {setting, adapter} <- [
           {"Bamboo.TestAdapter", Bamboo.TestAdapter},
           {"Bamboo.LocalAdapter", Bamboo.LocalAdapter}
-        ] do
+        ],
+        host <- ["127.0.0.1", "deliberately.invalid"] do
       config =
         mail_config(
           %{
             "MAILER_ADAPTER" => setting,
-            "ACTIGENCE_MAIL_RELAY_HOST" => "deliberately.invalid"
+            "ACTIGENCE_MAIL_RELAY_HOST" => host
           },
           environment
         )
@@ -162,8 +163,9 @@ defmodule ActigenceMailConfigTest do
 
   test "native test environments never gain SMTP through runtime configuration" do
     for environment <- [:test, :ce_test, :e2e_test],
-        adapter <- [nil, "unknown", "Bamboo.Mua", "Bamboo.MailgunAdapter"] do
-      variables = %{"ACTIGENCE_MAIL_RELAY_HOST" => "deliberately.invalid"}
+        adapter <- [nil, "unknown", "Bamboo.Mua", "Bamboo.MailgunAdapter"],
+        host <- [nil, "deliberately.invalid"] do
+      variables = if host, do: %{"ACTIGENCE_MAIL_RELAY_HOST" => host}, else: %{}
       variables = if adapter, do: Map.put(variables, "MAILER_ADAPTER", adapter), else: variables
 
       native = Config.Reader.read!(@test_file, env: environment)
