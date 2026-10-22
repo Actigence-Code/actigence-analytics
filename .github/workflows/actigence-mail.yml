@@ -1,0 +1,16 @@
+name: Actigence Mail mandatory
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mandatory-mail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check exclusive Actigence Mail delivery
+        run: |
+          python3 .github/scripts/check-actigence-mail.py
+          python3 .github/scripts/test-actigence-mail.py
