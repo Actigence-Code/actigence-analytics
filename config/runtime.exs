@@ -729,20 +729,32 @@ config :ex_money,
   open_exchange_rates_app_id: get_var_from_path_or_env(config_dir, "OPEN_EXCHANGE_RATES_APP_ID"),
   retrieve_every: :timer.hours(24)
 
-# Mandatory Actigence Mail; no provider selection or upstream credentials.
-actigence_mail_host = get_var_from_path_or_env(config_dir, "ACTIGENCE_MAIL_RELAY_HOST", "127.0.0.1")
-actigence_private_relay =
-  case :inet.parse_ipv4_address(String.to_charlist(actigence_mail_host)) do
-    {:ok, {127, 0, 0, 1}} -> true
-    {:ok, {100, 72, 162, 79}} -> true
-    {:ok, {10, 77, _, _}} -> true
-    _ -> false
+# Preserve native explicit no-delivery adapters and test environments.
+# Every adapter that actually delivers is constrained to Actigence Mail.
+no_delivery_adapter =
+  case get_var_from_path_or_env(config_dir, "MAILER_ADAPTER") do
+    "Bamboo.TestAdapter" -> Bamboo.TestAdapter
+    "Bamboo.LocalAdapter" -> Bamboo.LocalAdapter
+    _ -> if config_env() in [:test, :ce_test, :e2e_test], do: Bamboo.TestAdapter
   end
-unless actigence_private_relay do
-  raise ArgumentError, "actigence_mail_relay_unavailable"
+
+if no_delivery_adapter do
+  config :plausible, Plausible.Mailer, adapter: no_delivery_adapter
+else
+  actigence_mail_host = get_var_from_path_or_env(config_dir, "ACTIGENCE_MAIL_RELAY_HOST", "127.0.0.1")
+  actigence_private_relay =
+    case :inet.parse_ipv4_address(String.to_charlist(actigence_mail_host)) do
+      {:ok, {127, 0, 0, 1}} -> true
+      {:ok, {100, 72, 162, 79}} -> true
+      {:ok, {10, 77, _, _}} -> true
+      _ -> false
+    end
+  unless actigence_private_relay do
+    raise ArgumentError, "actigence_mail_relay_unavailable"
+  end
+  config :plausible, Plausible.Mailer,
+    adapter: Bamboo.Mua, relay: actigence_mail_host, port: 25, protocol: :tcp
 end
-config :plausible, Plausible.Mailer,
-  adapter: Bamboo.Mua, relay: actigence_mail_host, port: 25, protocol: :tcp
 
 base_cron = [
   # Daily at midnight
