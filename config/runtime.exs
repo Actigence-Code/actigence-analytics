@@ -741,7 +741,9 @@ no_delivery_adapter =
 if no_delivery_adapter do
   config :plausible, Plausible.Mailer, adapter: no_delivery_adapter
 else
-  actigence_mail_host = get_var_from_path_or_env(config_dir, "ACTIGENCE_MAIL_RELAY_HOST", "127.0.0.1")
+  actigence_mail_host =
+    get_var_from_path_or_env(config_dir, "ACTIGENCE_MAIL_RELAY_HOST", "127.0.0.1")
+
   actigence_private_relay =
     case :inet.parse_ipv4_address(String.to_charlist(actigence_mail_host)) do
       {:ok, {127, 0, 0, 1}} -> true
@@ -749,11 +751,16 @@ else
       {:ok, {10, 77, _, _}} -> true
       _ -> false
     end
+
   unless actigence_private_relay do
     raise ArgumentError, "actigence_mail_relay_unavailable"
   end
+
   config :plausible, Plausible.Mailer,
-    adapter: Bamboo.Mua, relay: actigence_mail_host, port: 25, protocol: :tcp
+    adapter: Bamboo.Mua,
+    relay: actigence_mail_host,
+    port: 25,
+    protocol: :tcp
 end
 
 base_cron = [
