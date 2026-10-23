@@ -41,7 +41,19 @@ defmodule Plausible.ConfigTest do
     end
   end
 
+  @actigence_mail_relay_config [
+    adapter: Bamboo.Mua,
+    relay: "127.0.0.1",
+    port: 25,
+    protocol: :tcp
+  ]
+
   describe "mailer" do
+    setup do
+      put_system_env_undo({"ACTIGENCE_MAIL_RELAY_HOST", nil})
+      :ok
+    end
+
     test "mailer email default" do
       env = [{"MAILER_EMAIL", nil}]
       assert get_in(runtime_config(env), [:plausible, :mailer_email]) == "plausible@localhost"
@@ -71,44 +83,35 @@ defmodule Plausible.ConfigTest do
                {"John", "custom@mailer.email"}
     end
 
-    test "defaults to Bamboo.Mua" do
+    test "defaults to Bamboo.Mua uses Actigence Mail" do
       env = {"MAILER_ADAPTER", nil}
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.Mua,
-               ssl: [middlebox_comp_mode: false]
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.PostmarkAdapter" do
+    test "Bamboo.PostmarkAdapter uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.PostmarkAdapter"},
         {"POSTMARK_API_KEY", "some-postmark-key"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.PostmarkAdapter,
-               request_options: [recv_timeout: 10_000],
-               api_key: "some-postmark-key"
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.MailgunAdapter" do
+    test "Bamboo.MailgunAdapter uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.MailgunAdapter"},
         {"MAILGUN_API_KEY", "some-mailgun-key"},
         {"MAILGUN_DOMAIN", "example.com"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.MailgunAdapter,
-               hackney_opts: [recv_timeout: 10_000],
-               api_key: "some-mailgun-key",
-               domain: "example.com"
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.MailgunAdapter with custom MAILGUN_BASE_URI" do
+    test "Bamboo.MailgunAdapter with custom MAILGUN_BASE_URI uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.MailgunAdapter"},
         {"MAILGUN_API_KEY", "some-mailgun-key"},
@@ -116,60 +119,45 @@ defmodule Plausible.ConfigTest do
         {"MAILGUN_BASE_URI", "https://api.eu.mailgun.net/v3"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.MailgunAdapter,
-               hackney_opts: [recv_timeout: 10_000],
-               api_key: "some-mailgun-key",
-               domain: "example.com",
-               base_uri: "https://api.eu.mailgun.net/v3"
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.MandrillAdapter" do
+    test "Bamboo.MandrillAdapter uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.MandrillAdapter"},
         {"MANDRILL_API_KEY", "some-mandrill-key"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.MandrillAdapter,
-               hackney_opts: [recv_timeout: 10_000],
-               api_key: "some-mandrill-key"
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.SendGridAdapter" do
+    test "Bamboo.SendGridAdapter uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.SendGridAdapter"},
         {"SENDGRID_API_KEY", "some-sendgrid-key"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.SendGridAdapter,
-               hackney_opts: [recv_timeout: 10_000],
-               api_key: "some-sendgrid-key"
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (no config)" do
+    test "Bamboo.Mua (no config) uses Actigence Mail" do
       env = [{"MAILER_ADAPTER", "Bamboo.Mua"}]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               {:adapter, Bamboo.Mua},
-               {:ssl, [middlebox_comp_mode: false]}
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (middlebox_comp_mode enabled)" do
+    test "Bamboo.Mua (middlebox_comp_mode enabled) uses Actigence Mail" do
       env = [{"MAILER_ADAPTER", "Bamboo.Mua"}, {"SMTP_MIDDLEBOX_COMP_MODE", "true"}]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               {:adapter, Bamboo.Mua},
-               {:ssl, [middlebox_comp_mode: true]}
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (relay config)" do
+    test "Bamboo.Mua (relay config) uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.Mua"},
         {"SMTP_HOST_ADDR", "localhost"},
@@ -178,17 +166,11 @@ defmodule Plausible.ConfigTest do
         {"SMTP_USER_PWD", "one"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               {:adapter, Bamboo.Mua},
-               {:ssl, [middlebox_comp_mode: false]},
-               {:protocol, :tcp},
-               {:relay, "localhost"},
-               {:port, 2525},
-               {:auth, [username: "neo", password: "one"]}
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (ssl relay config)" do
+    test "Bamboo.Mua (ssl relay config) uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.Mua"},
         {"SMTP_HOST_ADDR", "localhost"},
@@ -198,17 +180,11 @@ defmodule Plausible.ConfigTest do
         {"SMTP_USER_PWD", "one"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               {:adapter, Bamboo.Mua},
-               {:ssl, [middlebox_comp_mode: false]},
-               {:protocol, :ssl},
-               {:relay, "localhost"},
-               {:port, 2525},
-               {:auth, [username: "neo", password: "one"]}
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (port=465 relay config)" do
+    test "Bamboo.Mua (port=465 relay config) uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.Mua"},
         {"SMTP_HOST_ADDR", "localhost"},
@@ -217,17 +193,11 @@ defmodule Plausible.ConfigTest do
         {"SMTP_USER_PWD", "one"}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               {:adapter, Bamboo.Mua},
-               {:ssl, [middlebox_comp_mode: false]},
-               {:protocol, :ssl},
-               {:relay, "localhost"},
-               {:port, 465},
-               {:auth, [username: "neo", password: "one"]}
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
     end
 
-    test "Bamboo.Mua (no auth relay config)" do
+    test "Bamboo.Mua (no auth relay config) uses Actigence Mail" do
       env = [
         {"MAILER_ADAPTER", "Bamboo.Mua"},
         {"SMTP_HOST_ADDR", "localhost"},
@@ -236,13 +206,47 @@ defmodule Plausible.ConfigTest do
         {"SMTP_USER_PWD", nil}
       ]
 
-      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [
-               adapter: Bamboo.Mua,
-               ssl: [middlebox_comp_mode: false],
-               protocol: :tcp,
-               relay: "localhost",
-               port: 2525
-             ]
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               @actigence_mail_relay_config
+    end
+
+    test "explicit private Actigence relay is used" do
+      env = [
+        {"MAILER_ADAPTER", "Bamboo.Mua"},
+        {"ACTIGENCE_MAIL_RELAY_HOST", "10.77.30.1"}
+      ]
+
+      assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) ==
+               [adapter: Bamboo.Mua, relay: "10.77.30.1", port: 25, protocol: :tcp]
+    end
+
+    test "invalid Actigence relay never falls back to legacy provider configuration" do
+      for relay <- ["mail-eu.smtp2go.com", "10.77.smtp.attacker.example", "10.77.999.999"] do
+        env = [
+          {"MAILER_ADAPTER", "Bamboo.PostmarkAdapter"},
+          {"ACTIGENCE_MAIL_RELAY_HOST", relay},
+          {"POSTMARK_API_KEY", "some-postmark-key"},
+          {"SMTP_HOST_ADDR", "smtp.example.invalid"}
+        ]
+
+        assert_raise ArgumentError, "actigence_mail_relay_unavailable", fn ->
+          runtime_config(env)
+        end
+      end
+    end
+
+    test "explicit native adapters stay without delivery" do
+      for {name, adapter} <- [
+            {"Bamboo.LocalAdapter", Bamboo.LocalAdapter},
+            {"Bamboo.TestAdapter", Bamboo.TestAdapter}
+          ] do
+        env = [
+          {"MAILER_ADAPTER", name},
+          {"ACTIGENCE_MAIL_RELAY_HOST", "deliberately.invalid"}
+        ]
+
+        assert get_in(runtime_config(env), [:plausible, Plausible.Mailer]) == [adapter: adapter]
+      end
     end
 
     test "unknown adapter raises" do

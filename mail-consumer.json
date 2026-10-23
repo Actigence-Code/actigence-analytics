@@ -1,0 +1,20 @@
+{
+  "schema": "actigence.mail.consumer.v1",
+  "repository": "Actigence-Code/actigence-analytics",
+  "delivery": "actigence-mail-only",
+  "smtpSource": "/etc/actigence/mail/smtp2go.env",
+  "fallback": "refuse",
+  "role": "consumer",
+  "approvedAdapters": {
+    "config/runtime.exs": {
+      "sha256": "4c39cc7aa1faf66a0e93ffbec5ef939e8c6f2207662ea83f257d042df780f029",
+      "via": "actigence-mail-private-relay"
+    }
+  },
+  "nonDeliveryClients": {
+    "lib/plausible/postmark.ex": {
+      "sha256": "03590c45b7de7ea9794e2bc2d8f1e419a3a25d9fa005ef8448384084ed4fa4eb",
+      "reason": "Existing suppression/bounce import and deletion only; no email submission endpoint. Preserve native recipient suppression."
+    }
+  }
+}

@@ -56,8 +56,14 @@ postgres-stop: ## Stop and remove the postgres container
 browserless:
 	docker run -e "TOKEN=dummy_token" -p 3000:3000 --network host ghcr.io/browserless/chromium
 
-minio: ## Start a transient container with a recent version of minio (s3)
-	docker run -d --rm -p 10000:10000 -p 10001:10001 --name plausible_minio minio/minio server /data --address ":10000" --console-address ":10001"
+MINIO_CI_IMAGE := actigence-analytics-minio:source-7aac2a2c5b7c
+
+.PHONY: minio-image minio minio-stop
+minio-image: ## Build the pinned official MinIO community sources for local tests
+	docker build --tag $(MINIO_CI_IMAGE) .github/ci/minio
+
+minio: minio-image ## Start a transient MinIO (S3) test container
+	docker run -d --rm -p 10000:10000 -p 10001:10001 --name plausible_minio $(MINIO_CI_IMAGE) server /data --address ":10000" --console-address ":10001"
 	while ! docker exec plausible_minio mc alias set local http://localhost:10000 minioadmin minioadmin; do sleep 1; done
 	docker exec plausible_minio sh -c 'mc mb local/dev-exports && mc ilm add --expiry-days 7 local/dev-exports'
 	docker exec plausible_minio sh -c 'mc mb local/dev-imports && mc ilm add --expiry-days 7 local/dev-imports'

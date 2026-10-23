@@ -102,7 +102,6 @@ super_admin_user_ids =
   |> Enum.filter(& &1)
 
 env = get_var_from_path_or_env(config_dir, "ENVIRONMENT", "prod")
-mailer_adapter = get_var_from_path_or_env(config_dir, "MAILER_ADAPTER", "Bamboo.Mua")
 mailer_email = get_var_from_path_or_env(config_dir, "MAILER_EMAIL", "plausible@#{base_url.host}")
 
 mailer_email =
@@ -730,95 +729,55 @@ config :ex_money,
   open_exchange_rates_app_id: get_var_from_path_or_env(config_dir, "OPEN_EXCHANGE_RATES_APP_ID"),
   retrieve_every: :timer.hours(24)
 
-case mailer_adapter do
-  "Bamboo.PostmarkAdapter" ->
-    config :plausible, Plausible.Mailer,
-      adapter: Bamboo.PostmarkAdapter,
-      request_options: [recv_timeout: 10_000],
-      api_key: get_var_from_path_or_env(config_dir, "POSTMARK_API_KEY")
+# Preserve native explicit no-delivery adapters and test environments.
+# Every adapter that actually delivers is constrained to Actigence Mail.
+no_delivery_adapter =
+  case get_var_from_path_or_env(config_dir, "MAILER_ADAPTER") do
+    "Bamboo.TestAdapter" ->
+      Bamboo.TestAdapter
 
-  "Bamboo.MailgunAdapter" ->
-    config :plausible, Plausible.Mailer,
-      adapter: Bamboo.MailgunAdapter,
-      hackney_opts: [recv_timeout: :timer.seconds(10)],
-      api_key: get_var_from_path_or_env(config_dir, "MAILGUN_API_KEY"),
-      domain: get_var_from_path_or_env(config_dir, "MAILGUN_DOMAIN")
+    "Bamboo.LocalAdapter" ->
+      Bamboo.LocalAdapter
 
-    if mailgun_base_uri = get_var_from_path_or_env(config_dir, "MAILGUN_BASE_URI") do
-      config :plausible, Plausible.Mailer, base_uri: mailgun_base_uri
+    adapter
+    when adapter in [
+           nil,
+           "Bamboo.Mua",
+           "Bamboo.SMTPAdapter",
+           "Bamboo.PostmarkAdapter",
+           "Bamboo.MailgunAdapter",
+           "Bamboo.MandrillAdapter",
+           "Bamboo.SendGridAdapter"
+         ] ->
+      if config_env() in [:test, :ce_test, :e2e_test], do: Bamboo.TestAdapter
+
+    adapter ->
+      raise ArgumentError, "Unknown mailer_adapter: #{inspect(adapter)}"
+  end
+
+if no_delivery_adapter do
+  config :plausible, Plausible.Mailer, adapter: no_delivery_adapter
+else
+  actigence_mail_host =
+    get_var_from_path_or_env(config_dir, "ACTIGENCE_MAIL_RELAY_HOST", "127.0.0.1")
+
+  actigence_private_relay =
+    case :inet.parse_ipv4_address(String.to_charlist(actigence_mail_host)) do
+      {:ok, {127, 0, 0, 1}} -> true
+      {:ok, {100, 72, 162, 79}} -> true
+      {:ok, {10, 77, _, _}} -> true
+      _ -> false
     end
 
-  "Bamboo.MandrillAdapter" ->
-    config :plausible, Plausible.Mailer,
-      adapter: Bamboo.MandrillAdapter,
-      hackney_opts: [recv_timeout: :timer.seconds(10)],
-      api_key: get_var_from_path_or_env(config_dir, "MANDRILL_API_KEY")
+  unless actigence_private_relay do
+    raise ArgumentError, "actigence_mail_relay_unavailable"
+  end
 
-  "Bamboo.SendGridAdapter" ->
-    config :plausible, Plausible.Mailer,
-      adapter: Bamboo.SendGridAdapter,
-      hackney_opts: [recv_timeout: :timer.seconds(10)],
-      api_key: get_var_from_path_or_env(config_dir, "SENDGRID_API_KEY")
-
-  "Bamboo.SMTPAdapter" ->
-    raise ArgumentError, """
-    Bamboo.SMTPAdapter is no longer supported as the adapter is no longer maintained.
-    Please switch to Bamboo.Mua instead.
-    """
-
-  "Bamboo.Mua" ->
-    config :plausible, Plausible.Mailer, adapter: Bamboo.Mua
-
-    # prevents common problems with Erlang's TLS v1.3
-    middlebox_comp_mode =
-      get_bool_from_path_or_env(config_dir, "SMTP_MIDDLEBOX_COMP_MODE", false)
-
-    config :plausible, Plausible.Mailer, ssl: [middlebox_comp_mode: middlebox_comp_mode]
-
-    if relay = get_var_from_path_or_env(config_dir, "SMTP_HOST_ADDR") do
-      port = get_int_from_path_or_env(config_dir, "SMTP_HOST_PORT", 587)
-      ssl_enabled = get_bool_from_path_or_env(config_dir, "SMTP_HOST_SSL_ENABLED")
-
-      protocol =
-        cond do
-          ssl_enabled -> :ssl
-          is_nil(ssl_enabled) and port == 465 -> :ssl
-          true -> :tcp
-        end
-
-      config :plausible, Plausible.Mailer, protocol: protocol, relay: relay, port: port
-    end
-
-    username = get_var_from_path_or_env(config_dir, "SMTP_USER_NAME")
-    password = get_var_from_path_or_env(config_dir, "SMTP_USER_PWD")
-
-    cond do
-      username && password ->
-        config :plausible, Plausible.Mailer, auth: [username: username, password: password]
-
-      username || password ->
-        raise ArgumentError, """
-        Both SMTP_USER_NAME and SMTP_USER_PWD must be set for SMTP authentication.
-        Please provide values for both environment variables.
-        """
-
-      _both_nil = true ->
-        nil
-    end
-
-  "Bamboo.LocalAdapter" ->
-    config :plausible, Plausible.Mailer, adapter: Bamboo.LocalAdapter
-
-  "Bamboo.TestAdapter" ->
-    config :plausible, Plausible.Mailer, adapter: Bamboo.TestAdapter
-
-  _ ->
-    raise ArgumentError, """
-    Unknown mailer_adapter: #{inspect(mailer_adapter)}
-
-    Please see https://hexdocs.pm/bamboo/readme.html#available-adapters
-    for the list of available adapters that ship with Bamboo
-    """
+  config :plausible, Plausible.Mailer,
+    adapter: Bamboo.Mua,
+    relay: actigence_mail_host,
+    port: 25,
+    protocol: :tcp
 end
 
 base_cron = [
