@@ -102,11 +102,12 @@ defmodule ActigenceMailConfigTest do
     end
   end
 
-  test "unknown or delivering provider choices cannot choose another transport" do
+  test "known delivering provider choices cannot choose another transport" do
     for adapter <- [
-          "unknown",
           "Bamboo.MailgunAdapter",
           "Bamboo.PostmarkAdapter",
+          "Bamboo.MandrillAdapter",
+          "Bamboo.SendGridAdapter",
           "Bamboo.SMTPAdapter",
           "Bamboo.Mua"
         ] do
@@ -127,6 +128,15 @@ defmodule ActigenceMailConfigTest do
         })
 
       assert config == [adapter: Bamboo.Mua, relay: "127.0.0.1", port: 25, protocol: :tcp]
+    end
+  end
+
+  test "unknown adapters fail closed without evaluating arbitrary module names" do
+    for environment <- [:prod, :ce, :dev, :test, :ce_test, :e2e_test],
+        adapter <- ["unknown", "Bamboo.FakeAdapter", ""] do
+      assert_raise ArgumentError, "Unknown mailer_adapter: #{inspect(adapter)}", fn ->
+        mail_config(%{"MAILER_ADAPTER" => adapter}, environment)
+      end
     end
   end
 
@@ -163,7 +173,7 @@ defmodule ActigenceMailConfigTest do
 
   test "native test environments never gain SMTP through runtime configuration" do
     for environment <- [:test, :ce_test, :e2e_test],
-        adapter <- [nil, "unknown", "Bamboo.Mua", "Bamboo.MailgunAdapter"],
+        adapter <- [nil, "Bamboo.Mua", "Bamboo.MailgunAdapter"],
         host <- [nil, "deliberately.invalid"] do
       variables = if host, do: %{"ACTIGENCE_MAIL_RELAY_HOST" => host}, else: %{}
       variables = if adapter, do: Map.put(variables, "MAILER_ADAPTER", adapter), else: variables

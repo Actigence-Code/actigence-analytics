@@ -733,9 +733,26 @@ config :ex_money,
 # Every adapter that actually delivers is constrained to Actigence Mail.
 no_delivery_adapter =
   case get_var_from_path_or_env(config_dir, "MAILER_ADAPTER") do
-    "Bamboo.TestAdapter" -> Bamboo.TestAdapter
-    "Bamboo.LocalAdapter" -> Bamboo.LocalAdapter
-    _ -> if config_env() in [:test, :ce_test, :e2e_test], do: Bamboo.TestAdapter
+    "Bamboo.TestAdapter" ->
+      Bamboo.TestAdapter
+
+    "Bamboo.LocalAdapter" ->
+      Bamboo.LocalAdapter
+
+    adapter
+    when adapter in [
+           nil,
+           "Bamboo.Mua",
+           "Bamboo.SMTPAdapter",
+           "Bamboo.PostmarkAdapter",
+           "Bamboo.MailgunAdapter",
+           "Bamboo.MandrillAdapter",
+           "Bamboo.SendGridAdapter"
+         ] ->
+      if config_env() in [:test, :ce_test, :e2e_test], do: Bamboo.TestAdapter
+
+    adapter ->
+      raise ArgumentError, "Unknown mailer_adapter: #{inspect(adapter)}"
   end
 
 if no_delivery_adapter do

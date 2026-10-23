@@ -7,7 +7,7 @@
   "role": "consumer",
   "approvedAdapters": {
     "config/runtime.exs": {
-      "sha256": "4567d0098a54c51f248c4190c03e83a1c652a874a28f155b0a534b679a13eef5",
+      "sha256": "4c39cc7aa1faf66a0e93ffbec5ef939e8c6f2207662ea83f257d042df780f029",
       "via": "actigence-mail-private-relay"
     }
   },
