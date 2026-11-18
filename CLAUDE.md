@@ -15,3 +15,17 @@ suspend la famille touchée jusqu’à correction et contre-recette.
 
 [URS Actigence Mail · révision 1.0](https://github.com/Actigence-Code/actigence-links/blob/36bd64b422a142bf47e38eb7842e58a155ccedbe/docs/URS-ACTIGENCE-MAIL.md)
 <!-- ACTIGENCE:urs-mail-20261118:end -->
+
+<!-- ACTIGENCE:no-em-dash-20261118:start -->
+## Ponctuation Actigence obligatoire
+
+Instruction de Laurent du 18 novembre 2026. Aucun tiret cadratin (Unicode
+U+2014) dans les contenus produits ou affichés par Actigence, partout et
+en tout temps, dans tous les projets et toutes les langues. Cela couvre
+les réponses des agents, la documentation, les interfaces, les rapports,
+les notifications, les e-mails et leurs objets. Reformuler avec la ponctuation
+courante ou employer le tiret simple pour un séparateur. Contrôler le rendu
+avant publication. Préserver l’intégrité des sources et archives immuables.
+
+[Politique de ponctuation Actigence](https://github.com/Actigence-Code/.github/blob/8a24081218f5adab971f735e156985c72855e918/docs/STYLE-POLICY.md)
+<!-- ACTIGENCE:no-em-dash-20261118:end -->
